@@ -7,14 +7,14 @@
 
 | # | 讲次 | 笔记 | 原视频 |
 |---|---|---|---|
-| 01 | 欢迎来到未来 | [PDF](pdf/01-欢迎来到未来.pdf) | [BV1pb8o6yE8f](https://www.bilibili.com/video/BV1pb8o6yE8f) |
-| 02 | 提示词工程 | [PDF](pdf/02-提示词工程.pdf) | [BV1CQt365EzW](https://www.bilibili.com/video/BV1CQt365EzW) |
-| 03 | 软件仓库管理 | [PDF](pdf/03-软件仓库管理.pdf) | [BV1kybV6DE47](https://www.bilibili.com/video/BV1kybV6DE47) |
-| 04 | 软件仓库管理 (2) | [PDF](pdf/04-软件仓库管理2.pdf) | [BV1Q6en6NEUo](https://www.bilibili.com/video/BV1Q6en6NEUo) |
-| 05 | 软件工程的来龙去脉 | [PDF](pdf/05-软件工程的来龙去脉.pdf) | [BV1Nyeq6qEt8](https://www.bilibili.com/video/BV1Nyeq6qEt8) |
-| 06 | 需求和架构 (1) | [PDF](pdf/06-需求和架构1.pdf) | [BV1Rch76WEfQ](https://www.bilibili.com/video/BV1Rch76WEfQ) |
+| 01 | 欢迎来到未来 | [PDF](pdf/01-欢迎来到未来.pdf) · [Markdown](md/01-欢迎来到未来.md) | [BV1pb8o6yE8f](https://www.bilibili.com/video/BV1pb8o6yE8f) |
+| 02 | 提示词工程 | [PDF](pdf/02-提示词工程.pdf) · [Markdown](md/02-提示词工程.md) | [BV1CQt365EzW](https://www.bilibili.com/video/BV1CQt365EzW) |
+| 03 | 软件仓库管理 | [PDF](pdf/03-软件仓库管理.pdf) · [Markdown](md/03-软件仓库管理.md) | [BV1kybV6DE47](https://www.bilibili.com/video/BV1kybV6DE47) |
+| 04 | 软件仓库管理 (2) | [PDF](pdf/04-软件仓库管理2.pdf) · [Markdown](md/04-软件仓库管理2.md) | [BV1Q6en6NEUo](https://www.bilibili.com/video/BV1Q6en6NEUo) |
+| 05 | 软件工程的来龙去脉 | [PDF](pdf/05-软件工程的来龙去脉.pdf) · [Markdown](md/05-软件工程的来龙去脉.md) | [BV1Nyeq6qEt8](https://www.bilibili.com/video/BV1Nyeq6qEt8) |
+| 06 | 需求和架构 (1) | [PDF](pdf/06-需求和架构1.pdf) · [Markdown](md/06-需求和架构1.md) | [BV1Rch76WEfQ](https://www.bilibili.com/video/BV1Rch76WEfQ) |
 
-每份 PDF 的标题下方也写有对应的原视频链接。
+每份笔记的标题下方也写有对应的原视频链接。`md/` 下是 Markdown 源文件（截图在 `md/images/`），可以直接在 GitHub 上看，也方便搜索和复制。
 
 ## 怎么读
 
