@@ -26,4 +26,6 @@
 ## 怎么做的
 
 B 站 AI 中文字幕 → 按时间切段 → 大模型（DeepSeek）逐段整理论证 → 再通读全文写「全课主线」→ 截取对应画面 → pandoc + Chrome 导出 PDF。
+
+工具基于 [NothingToSay0031/VideoSummary](https://github.com/NothingToSay0031/VideoSummary)（作者 [@NothingToSay0031](https://github.com/NothingToSay0031)，MIT License）修改。改动的脚本和生成用的 agent skill 都在 [`tools/`](tools/)，说明见 [tools/README.md](tools/README.md)。
 笔记由模型生成，可能有理解偏差，引用前请对照原视频。

@@ -1,0 +1,177 @@
+diff --git a/.gitignore b/.gitignore
+index 6fa91d2..26e7483 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -6,3 +6,5 @@ output/
+ *.txt
+ !requirements.txt
+ */
++.env
++cookies.txt
+diff --git a/video_summary_app.py b/video_summary_app.py
+index 0b93806..b7eb22d 100644
+--- a/video_summary_app.py
++++ b/video_summary_app.py
+@@ -25,6 +25,11 @@ try:
+ except ImportError:
+     genai = None
+ 
++try:
++    from openai import OpenAI
++except ImportError:
++    OpenAI = None
++
+ INVALID_PATH_CHARS = set('<>:"/\\|?*')
+ 
+ 
+@@ -61,28 +66,117 @@ def chinese_char_ratio(text: str) -> float:
+ 
+ 
+ # ==== LLM 配置（可根据需要修改）====
++def _load_dotenv(path: str = None):
++    """极简 .env 加载器（KEY=VALUE，支持引号与 # 注释），不覆盖已有环境变量"""
++    if path is None:
++        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
++    if not os.path.isfile(path):
++        return
++    with open(path, encoding="utf-8") as f:
++        for line in f:
++            line = line.strip()
++            if not line or line.startswith("#") or "=" not in line:
++                continue
++            k, _, v = line.partition("=")
++            k, v = k.strip(), v.strip().strip('"').strip("'")
++            if k and k not in os.environ:
++                os.environ[k] = v
++
++
++_load_dotenv()
++
+ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+ PRIMARY_MODEL = "gemini-2.5-pro"
++
++# ==== DeepSeek / OpenAI 兼容配置 ====
++LLM_PROVIDER = os.environ.get("LLM_PROVIDER", "deepseek")  # gemini | deepseek
++DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "")
++DEEPSEEK_BASE_URL = os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
++DEEPSEEK_MODEL = os.environ.get("DEEPSEEK_MODEL", "deepseek-chat")
++
++if LLM_PROVIDER == "deepseek":
++    PRIMARY_MODEL = DEEPSEEK_MODEL
++
++
++class _Resp:
++    """兼容 genai 响应的最小包装"""
++
++    def __init__(self, text: str):
++        self.text = text
++
++
++class _RespModels:
++    def __init__(self, client):
++        self._client = client
++
++    def generate_content(self, model: str, contents: str, **kwargs) -> _Resp:
++        # genai prompt 中 system + 用户内容在同一段文本里，直接作为 user 消息发送
++        resp = self._client.chat.completions.create(
++            model=model,
++            messages=[{"role": "user", "content": contents}],
++            temperature=kwargs.get("temperature", 0.3),
++            stream=False,
++        )
++        choice = resp.choices[0] if resp.choices else None
++        text = (getattr(getattr(choice, "message", None), "content", None) or "").strip()
++        if not text and getattr(choice, "finish_reason", "") == "length":
++            raise RuntimeError("DeepSeek 返回被 max_tokens 截断")
++        return _Resp(text)
++
++
++class _RespModelsProxy:
++    def __init__(self, models):
++        self.models = models
++
++
++class DeepSeekClient:
++    """与 genai.Client 接口兼容的 DeepSeek（OpenAI 兼容）客户端"""
++
++    def __init__(self, api_key: str, base_url: str = DEEPSEEK_BASE_URL):
++        if OpenAI is None:
++            raise ImportError("未找到 openai 包，请先安装: pip install openai")
++        self._openai = OpenAI(api_key=api_key, base_url=base_url)
++        self.models = _RespModels(self._openai)
++
++
++def _build_llm_client():
++    """按 LLM_PROVIDER 构建客户端，返回 (client, model)"""
++    if LLM_PROVIDER == "deepseek":
++        api_key = DEEPSEEK_API_KEY
++        if not api_key:
++            raise ValueError("DEEPSEEK_API_KEY 未设置，请配置环境变量或 .env。")
++        client = DeepSeekClient(api_key)
++        logger.info(f"使用 DeepSeek 提供方: model={DEEPSEEK_MODEL} base={DEEPSEEK_BASE_URL}")
++        return client
++    # 默认 gemini
++    api_key = os.environ.get("GEMINI_API_KEY", GEMINI_API_KEY)
++    if not api_key or "YOUR_API_KEY" in api_key:
++        raise ValueError("GEMINI_API_KEY 未设置，请配置环境变量或在代码中填写。")
++    if genai is None:
++        raise ImportError("未找到 google-genai，请先安装: pip install google-genai")
++    client = genai.Client(api_key=api_key, http_options={'api_version': 'v1alpha'})
++    return client
+ BASE_SYSTEM_PROMPT = """
+ ## Background Information
+ 
+-You are an expert proficient in computer graphics, skilled at explaining complex technical concepts in a clear, structured manner to people who have a foundation in graphics but wish to delve deeper into the content of a video lecture.
+-You are reading through and summarizing a long technical graphics lecture transcript section by section. This is part ${current}$ of ${total}$ total parts.
+-My Goal: I am a **Game Engine Engineer and Rendering Engineer** with a **graphics background**. I aim to enrich my knowledge, gain in-depth mastery of graphics and game engine knowledge, and understand industry developments, thus seeking to **deeply study the content related to the lecture**.
++You are an expert note-taker turning a long lecture transcript into study notes, section by section. This is part ${current}$ of ${total}$ total parts.
++The reader is a PhD student who found the live lecture fragmented. They want **the speaker's reasoning made explicit as a logical chain**, and they need to know what the speaker actually said versus what you inferred.
++The transcript comes from automatic speech recognition: fix obvious recognition errors from context (technical terms, names). If a term matters but you are unsure, keep the original once in brackets; drop garbled fragments that carry no meaning.
+ 
+ ## Task Requirements
+ 
+-1.  **Core Task:** Please summarize the content I provide below into **easily understandable and memorable notes**.
+-2.  **Formatting Requirements:**
+-    * Use a **clear hierarchical structure** (main headings, subheadings, bullet points).
+-    * For each topic, distill and **bold** the **core concepts** and **key terminology**.
+-    * If **formulas or important algorithms** are involved, please highlight them. Use standard **LaTeX format** to ensure the document can be rendered correctly.
+-    * The language style should be as **accessible as possible**, avoiding direct copying of obscure jargon from the original text.
+-    * **Strictly No Meta-talk:**
+-        * **Absolutely prohibited** to output any opening or closing remarks (e.g., "...Here are the notes prepared for you...").
+-        * **Absolutely prohibited** to include metadata titles like "Part ${current}$" or "Part X" in the body text.
+-        * **Start directly with the technical content title.**
+-3. 输出中文！
++1.  **Core Task:** Rebuild this part as a **connected argument**: what the speaker claims, why (reasons, examples, stories, demos), and what follows. Use headings that state the point (e.g. "valid ≠ 值得读"), not just the topic.
++2.  **Explicit logic chain:** Where it helps, give the chain as numbered steps or `A → B → C`.
++    * If the speaker states a link, write it plainly.
++    * If **you** supply a link, reason or conclusion the speaker did not state, mark it inline with **（整理者串联）**. Never present your own inference as the speaker's.
++3.  **Keep the speaker's concrete details**: numbers, names, anecdotes, demos, jokes that carry a point, and their personal opinions (attribute them: "讲者认为…").
++4.  **Do not add** content the speaker didn't give: no formulas unless the speaker wrote or said them, no "implications for <some profession>", no invented examples, no general background lectures.
++5.  **Formatting:**
++    * Clear hierarchy (headings, subheadings, bullets); **bold** core concepts and key terms.
++    * At most one short 小结 line at the end of the part. No "记忆点 / 记忆钩子 / 速记表" sections, and don't restate the body.
++    * If the speaker gives a formula or algorithm, use standard LaTeX.
++    * **Strictly no meta-talk**: no opening or closing remarks, no "Part X" labels. Start directly with the first content heading.
++6. 输出中文！
+ ## Content to be Summarized
+ """
+ 
+@@ -1373,17 +1467,8 @@ class VideoSummaryApp:
+                     current=current_idx, total=total_chunks) + "\n\n" + chunk
+                 summaries.append(prompt)
+         else:
+-            # 检查API KEY
+-            api_key = os.environ.get("GEMINI_API_KEY", GEMINI_API_KEY)
+-            if not api_key or "YOUR_API_KEY" in api_key:
+-                raise ValueError("GEMINI_API_KEY 未设置，请配置环境变量或在代码中填写。")
+-            if genai is None:
+-                raise ImportError(
+-                    "未找到 google-genai，请先安装: pip install google-genai")
+-
+             try:
+-                client = genai.Client(api_key=api_key, http_options={
+-                    'api_version': 'v1alpha'})
++                client = _build_llm_client()
+             except Exception as e:
+                 logger.error(f"初始化API客户端失败: {e}")
+                 raise
