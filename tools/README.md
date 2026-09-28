@@ -27,4 +27,4 @@ python vsum.py <B站视频或合集链接> -o output/<名字> -d <输出目录>
 - **voice-summary**：调用上面的 VideoSummary 流程，只读字幕。**本仓库的 PDF 和 Markdown 都是用它生成的。**
 - **video-summary**：实验版，由 agent 自己看视频截图（幻灯片、代码、板书）写图文笔记，适合幻灯片内容重要的课。本仓库的笔记没有用它。脚本在 `scripts/`，需要 `opencv-python` 和 `numpy`。
 
-skill 里写的路径（如 `~/project/VideoSummary`）是原作者本机的位置，用的时候按自己的目录改。
+skill 里写的路径（如 `~/project/VideoSummary`）是整理者本机的位置，用的时候按自己的目录改。
