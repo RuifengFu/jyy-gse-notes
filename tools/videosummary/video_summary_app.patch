@@ -9,9 +9,18 @@ index 6fa91d2..26e7483 100644
 +.env
 +cookies.txt
 diff --git a/video_summary_app.py b/video_summary_app.py
-index 0b93806..b7eb22d 100644
+index 0b93806..cdbdd31 100644
 --- a/video_summary_app.py
 +++ b/video_summary_app.py
+@@ -16,7 +16,7 @@ from datetime import datetime
+ from bisect import bisect_left
+ from urllib.parse import quote
+ from typing import List, Dict, Any, Tuple, TextIO, Optional
+-from concurrent.futures import ThreadPoolExecutor
++from concurrent.futures import ThreadPoolExecutor, as_completed
+ import cv2
+ import numpy as np
+ 
 @@ -25,6 +25,11 @@ try:
  except ImportError:
      genai = None
@@ -29,7 +38,7 @@ index 0b93806..b7eb22d 100644
  
  # ==== LLM 配置（可根据需要修改）====
 +def _load_dotenv(path: str = None):
-+    """极简 .env 加载器（KEY=VALUE，支持引号与 # 注释），不覆盖已有环境变量"""
++    """极简 .env 加载器（KEY=VALUE，支持引号与 # 注释），不覆盖已有的非空环境变量"""
 +    if path is None:
 +        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
 +    if not os.path.isfile(path):
@@ -41,7 +50,7 @@ index 0b93806..b7eb22d 100644
 +                continue
 +            k, _, v = line.partition("=")
 +            k, v = k.strip(), v.strip().strip('"').strip("'")
-+            if k and k not in os.environ:
++            if k and not os.environ.get(k):  # 空值也算未设置
 +                os.environ[k] = v
 +
 +
@@ -156,7 +165,7 @@ index 0b93806..b7eb22d 100644
  ## Content to be Summarized
  """
  
-@@ -1373,17 +1467,8 @@ class VideoSummaryApp:
+@@ -1373,26 +1467,19 @@ class VideoSummaryApp:
                      current=current_idx, total=total_chunks) + "\n\n" + chunk
                  summaries.append(prompt)
          else:
@@ -175,3 +184,47 @@ index 0b93806..b7eb22d 100644
              except Exception as e:
                  logger.error(f"初始化API客户端失败: {e}")
                  raise
+ 
+-            for i, chunk in enumerate(chunks):
+-                current_idx = i + 1
++            # 各段总结互不依赖，并发发给 LLM；时间几乎都花在等 API 回复上
++            workers = max(1, int(os.environ.get("SUMMARY_WORKERS", "6")))
++            logger.info(f"  并发总结：{workers} 路，共 {total_chunks} 段")
+ 
++            def summarize_one(i: int, chunk: str) -> str:
++                current_idx = i + 1
+                 logger.info(f"  总结片段 {current_idx}/{total_chunks}...")
+-
+                 max_retries = 5
+                 for attempt in range(1, max_retries + 1):
+                     try:
+@@ -1400,10 +1487,8 @@ class VideoSummaryApp:
+                             client, chunk, current_idx, total_chunks, PRIMARY_MODEL
+                         )
+                         if summary and summary.strip():
+-                            summaries.append(summary)
+-                            break
+-                        else:
+-                            raise RuntimeError("LLM 返回空总结")
++                            return summary
++                        raise RuntimeError("LLM 返回空总结")
+                     except Exception as e:
+                         if attempt < max_retries:
+                             logger.warning(
+@@ -1416,6 +1501,16 @@ class VideoSummaryApp:
+                             raise RuntimeError(
+                                 f"片段 {current_idx} 总结在重试 {max_retries} 次后仍失败，终止本文件处理") from e
+ 
++            ex = ThreadPoolExecutor(max_workers=workers)
++            try:
++                futures = [ex.submit(summarize_one, i, c) for i, c in enumerate(chunks)]
++                for done, f in enumerate(as_completed(futures), 1):
++                    f.result()  # 有一段彻底失败就立刻抛出
++                    logger.info(f"  完成片段 {done}/{total_chunks}")
++                summaries = [f.result() for f in futures]  # 按原顺序
++            finally:
++                ex.shutdown(wait=True, cancel_futures=True)
++
+         # 保存总结到文件
+         summary_path = os.path.join(
+             self.output_dir, f"{video_title}_summary_temp.md")

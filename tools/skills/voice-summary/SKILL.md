@@ -23,13 +23,17 @@ python vsum.py <video-or-collection-url>... -o output/<slug> -d ~/Desktop/<课�
   <dest>/摘要/NN-标题.md     summary + screenshots (images in 摘要/images/)
   <dest>/PDF/NN-标题.pdf     the summary rendered to PDF
   ```
+- `--text-only`: for interviews, podcasts and talking heads, skip the video download and screenshots entirely (passes `-n` to the app). When the video has subtitles, it needs no audio either. Use it by default when the screen doesn't matter.
+- If the log says `DEEPSEEK_API_KEY 未设置` although `.env` has it, the shell exports an **empty** `DEEPSEEK_API_KEY`, and the `.env` loader never overrides existing variables. Run with `env -u DEEPSEEK_API_KEY python vsum.py …`.
 - Collections/playlists get expanded. Videos under 10 minutes are skipped (`--min-minutes`). Videos that already have a summary are skipped too, so re-running resumes an interrupted batch.
 - Bilibili subtitles need login. If `cookies.txt` has expired, vsum re-exports it from Chrome, keeping only bilibili.com cookies. If that fails, ask the user to log in to Bilibili in Chrome.
 - Never call `video_summary_app.py` directly with a shared `-o` directory for several videos. It reuses local files by **fuzzy keyword match**, so lectures of one course pick up each other's video and subtitles and overwrite each other's summary. vsum gives every video its own `-o <out>/<video id>/`, which avoids this.
 - To re-export only (no downloading, no LLM): `python export_notes.py output/<slug> <dest>`.
 
 ## Running it
-- It takes about 15 minutes per 100-minute lecture, so run it in the background (`nohup … > output/<slug>.log 2>&1 &`) and poll the log. Report which videos finished or failed.
+- It takes about 5 minutes per 100-minute lecture. Almost all of it is waiting for DeepSeek; chunks are summarized concurrently (default 6, env `SUMMARY_WORKERS`), so ~9 s per chunk instead of ~40 s. Activate `.venv` first (otherwise the app calls an outdated Homebrew `yt-dlp` that gets HTTP 412 from Bilibili), then run it in the background (`nohup … > output/<slug>.log 2>&1 &`).
+- **Do not leave the user waiting blindly.** Right after launching, tell them `python progress.py -w` (live progress bar in their terminal), and arm a Monitor that prints `python progress.py output/<slug>.log --line` every ~3 minutes until vsum exits. When it ends, report which videos finished or failed; `python progress.py output/<slug>.log --profile` shows per-stage timing.
+- `~/.zshrc` exports an empty `DEEPSEEK_API_KEY`; the `.env` loaders treat an empty value as unset, so `.env` wins. If you see 「DEEPSEEK_API_KEY 未设置」, check that first.
 - Check free space first with `df -h /Volumes/AppStorage`: each lecture's video is about 150 MB and its frames about 12 MB.
 - The summary prompt is `BASE_SYSTEM_PROMPT` in `video_summary_app.py`. Current version is v3 (2026-09-28): each chunk is rebuilt as the speaker's argument, with a logic chain. Links the model supplies itself are marked **（整理者串联）**. No invented formulas, no audience persona, no 记忆钩子 sections, and ASR errors are fixed. v3 beat the original prompt 3–0 in a blind test on jyy lecture 02.
 - After each video, `outline.py` adds a **## 全课主线** section at the top: a 6–12-step argument chain across the whole lecture, each step citing 第 N 部分. Rerun it alone with `python outline.py <summary.md> --force`.

@@ -38,7 +38,8 @@ def load_env():
         for line in env.read_text().splitlines():
             if "=" in line and not line.strip().startswith("#"):
                 k, _, v = line.partition("=")
-                os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+                if not os.environ.get(k.strip()):  # 空值也算未设置
+                    os.environ[k.strip()] = v.strip().strip('"').strip("'")
 
 
 def strip_images(md: str) -> str:

@@ -9,12 +9,13 @@
 
 | 文件 | 作用 |
 |---|---|
-| `video_summary_app.patch` | 改写逐段总结的提示词（v3）：按讲者的论证写成逻辑链；老师没说、由模型补上的衔接标（整理者串联）；不加课外公式和例子；修正字幕识别错误 |
+| `video_summary_app.patch` | 改写逐段总结的提示词（v3）：按讲者的论证写成逻辑链；老师没说、由模型补上的衔接标（整理者串联）；不加课外公式和例子；修正字幕识别错误。各段总结同时发给 LLM（默认 6 路，环境变量 `SUMMARY_WORKERS` 可调），一讲约 4 分钟 |
 | `vsum.py` | 一条命令批量处理：展开合集、每个视频单独目录（避免原工具按关键词模糊匹配时串课）、预先下载中文字幕、自动刷新 B 站 cookie、跑完调用下面两个脚本 |
 | `outline.py` | 读完整份逐段总结，在开头加「全课主线」 |
 | `export_notes.py` | 整理成 原文 / 摘要 / PDF 三个文件夹（pandoc + Chrome 导出 PDF） |
+| `progress.py` | 看进度：`python progress.py -w` 实时进度条，`--profile` 各阶段耗时 |
 
-用法：把原仓库 clone 下来，`git apply video_summary_app.patch`，把三个 `.py` 放进仓库根目录，在 `.env` 里配好 `DEEPSEEK_API_KEY`，然后：
+用法：把原仓库 clone 下来，`git apply video_summary_app.patch`，把四个 `.py` 放进仓库根目录，在 `.env` 里配好 `DEEPSEEK_API_KEY`，然后：
 
 ```bash
 python vsum.py <B站视频或合集链接> -o output/<名字> -d <输出目录>

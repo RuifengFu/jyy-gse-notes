@@ -12,9 +12,11 @@ import argparse
 import json
 import os
 import re
+import glob
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
@@ -69,8 +71,17 @@ def refresh_cookies_from_chrome(url: str) -> bool:
 YTDLP_SAFE = str.maketrans({'/': '⧸', '\\': '⧹', ':': '：', '*': '＊', '?': '？', '"': '＂', '<': '＜', '>': '＞', '|': '｜'})
 
 
+def summary_path(out: Path, title: str) -> Path | None:
+    # 纯文本模式下文件名会带字幕后缀，例如 <标题>.NA.ai-zh.md
+    stem = title.translate(YTDLP_SAFE)
+    exact = out / f"{stem}.md"
+    if exact.exists():
+        return exact
+    return next(iter(sorted(out.glob(f"{glob.escape(stem)}.*.md"))), None)
+
+
 def summary_exists(out: Path, title: str) -> bool:
-    return (out / f"{title.translate(YTDLP_SAFE)}.md").exists()
+    return summary_path(out, title) is not None
 
 
 def main():
@@ -80,11 +91,13 @@ def main():
     ap.add_argument("-d", "--dest", type=Path, required=True, help="最终整理目录（原文/摘要/PDF）")
     ap.add_argument("--min-minutes", type=float, default=10)
     ap.add_argument("--no-pdf", action="store_true")
+    ap.add_argument("--text-only", action="store_true", help="不下载视频、不截图，只用字幕做文字摘要（访谈/播客）")
     args = ap.parse_args()
     out = args.out if args.out.is_absolute() else ROOT / args.out
 
     urls = [u for url in args.urls for u in expand(url)]
     print(f"共 {len(urls)} 个视频")
+    print("看进度：python progress.py -w（耗时明细：python progress.py --profile）", flush=True)
     cookies_checked = False
     failed = []
     for url in urls:
@@ -105,21 +118,26 @@ def main():
                 ok = refresh_cookies_from_chrome(url) and has_login_subs(url)
                 print("  ✅ cookies 已刷新" if ok else "  ⚠️ 刷新失败：请在 Chrome 里登录 B 站后重试")
         print(f"▶ 处理：{title}（{dur:.0f} 分钟）", flush=True)
+        t0 = time.time()
         # 先自己下好字幕：video_summary_app 的字幕下载偶尔只拿到弹幕（danmaku），会直接崩
         for langs in ("ai-zh,zh-Hans,zh-CN,zh", "en,ai-en"):  # 先中文；没有中文才下英文
             ytdlp("--skip-download", "--write-subs", "--sub-langs", langs,
                   "--sub-format", "srt", "-P", str(vout / "downloads"), "-o", "%(title)s.NA.%(ext)s", url)
             if list((vout / "downloads").glob("*.srt")):
                 break
-        r = subprocess.run([PY, str(ROOT / "video_summary_app.py"), url, "-o", str(vout), "-c", str(COOKIES)], cwd=ROOT)
+        r = subprocess.run([PY, str(ROOT / "video_summary_app.py"), url, "-o", str(vout), "-c", str(COOKIES)] + (["-n"] if args.text_only else []), cwd=ROOT)
         if r.returncode != 0 or not summary_exists(vout, title):
             failed.append(title)
             print(f"  ❌ 失败：{title}")
             continue
         # 逐段总结是碎片化的：再串一条全课论证主线，插到最前面
-        subprocess.run([PY, str(ROOT / "outline.py"), str(vout / f"{title.translate(YTDLP_SAFE)}.md")], cwd=ROOT)
+        t1 = time.time()
+        subprocess.run([PY, str(ROOT / "outline.py"), str(summary_path(vout, title))], cwd=ROOT)
+        print(f"⏱ 全课主线 用时 {time.time() - t1:.0f}s；本视频共 {time.time() - t0:.0f}s", flush=True)
 
+    t1 = time.time()
     subprocess.run([PY, str(ROOT / "export_notes.py"), str(out), str(args.dest)] + (["--no-pdf"] if args.no_pdf else []), check=False)
+    print(f"⏱ 导出（原文/摘要/PDF）用时 {time.time() - t1:.0f}s", flush=True)
     if failed:
         print("失败的视频：\n  " + "\n  ".join(failed))
         sys.exit(1)
