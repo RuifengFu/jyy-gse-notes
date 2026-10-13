@@ -13,6 +13,8 @@
 | 04 | 软件仓库管理 (2) | [PDF](pdf/04-软件仓库管理2.pdf) · [Markdown](md/04-软件仓库管理2.md) | [BV1Q6en6NEUo](https://www.bilibili.com/video/BV1Q6en6NEUo) |
 | 05 | 软件工程的来龙去脉 | [PDF](pdf/05-软件工程的来龙去脉.pdf) · [Markdown](md/05-软件工程的来龙去脉.md) | [BV1Nyeq6qEt8](https://www.bilibili.com/video/BV1Nyeq6qEt8) |
 | 06 | 需求和架构 (1) | [PDF](pdf/06-需求和架构1.pdf) · [Markdown](md/06-需求和架构1.md) | [BV1Rch76WEfQ](https://www.bilibili.com/video/BV1Rch76WEfQ) |
+| 07 | 需求和架构 (2) | [PDF](pdf/07-需求和架构2.pdf) · [Markdown](md/07-需求和架构2.md) | [BV1JGap6LE74](https://www.bilibili.com/video/BV1JGap6LE74) |
+| 08 | Agent-native 开发 | [PDF](pdf/08-Agent-native开发.pdf) · [Markdown](md/08-Agent-native开发.md) | [BV11LWw6VEHW](https://www.bilibili.com/video/BV11LWw6VEHW) |
 
 每份笔记的标题下方也写有对应的原视频链接。`md/` 下是 Markdown 源文件（截图在 `md/images/`），可以直接在 GitHub 上看，也方便搜索和复制。
 
