@@ -170,7 +170,6 @@ def main():
     collection = dict(pairs)
     print(f"共 {len(urls)} 个视频")
     print("看进度：python progress.py -w（耗时明细：python progress.py --profile）", flush=True)
-    cookies_checked = False
     failed = []
     for url in urls:
         meta = info(url)
@@ -186,8 +185,8 @@ def main():
         if args.legacy and summary_exists(vout, title):
             print(f"- 已完成，跳过：{title}")
             continue
-        if "bilibili" in url and not cookies_checked:
-            cookies_checked = True
+        # 每个视频都查一次：B 站会在批处理中途轮换登录态，只查第一个会让后面的视频全部拿不到字幕
+        if "bilibili" in url:
             if not has_login_subs(url) and logged_in():
                 print("  B 站已登录，但这个视频没有字幕（UP 主没传 CC，B 站也没生成 AI 字幕）")
             elif not has_login_subs(url):

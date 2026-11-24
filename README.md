@@ -17,6 +17,10 @@
 | 08 | Agent-native 开发 | [PDF](pdf/08-Agent-native开发.pdf) · [Markdown](md/08-Agent-native开发.md) | [BV11LWw6VEHW](https://www.bilibili.com/video/BV11LWw6VEHW) |
 | 09 | DeepSeek Harness | [PDF](pdf/09-DeepSeekHarness.pdf) · [Markdown](md/09-DeepSeekHarness.md) | [BV144nc6KEA4](https://www.bilibili.com/video/BV144nc6KEA4) |
 | 10 | 软件的演化（航母是怎么造出来的） | [PDF](pdf/10-软件的演化.pdf) · [Markdown](md/10-软件的演化.md) | [BV1Guxu6EERa](https://www.bilibili.com/video/BV1Guxu6EERa) |
+| 11 | 软件质量保障 (1) | [PDF](pdf/11-软件质量保障1.pdf) · [Markdown](md/11-软件质量保障1.md) | [BV1ej4g6xESc](https://www.bilibili.com/video/BV1ej4g6xESc) |
+| 12 | 软件质量保障 (2) | [PDF](pdf/12-软件质量保障2.pdf) · [Markdown](md/12-软件质量保障2.md) | [BV1LaW36WErp](https://www.bilibili.com/video/BV1LaW36WErp) |
+| 13 | 软件分析工具 | [PDF](pdf/13-软件分析工具.pdf) · [Markdown](md/13-软件分析工具.md) | [BV1wysu6hEkz](https://www.bilibili.com/video/BV1wysu6hEkz) |
+| 14 | 软件发布与运维 | [PDF](pdf/14-软件发布与运维.pdf) · [Markdown](md/14-软件发布与运维.md) | [BV1pu1FzKEgk](https://www.bilibili.com/video/BV1pu1FzKEgk) |
 
 每份笔记的标题下方也写有对应的原视频链接。`md/` 下是 Markdown 源文件（结构图在 `md/images/`），可以直接在 GitHub 上看，也方便搜索和复制。
 
